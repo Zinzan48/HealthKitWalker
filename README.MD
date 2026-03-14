@@ -77,6 +77,12 @@ fvm flutter analyze
 fvm flutter test
 ```
 
+## Local workflow
+
+- Open the workspace in VS Code.
+- The repo includes `.vscode/settings.json` so Dart / Flutter should point to `.fvm/flutter_sdk`.
+- Start with the mock route first. This lets you validate the app behavior before spending money on Apple signing.
+
 When the real HealthKit route becomes available later:
 
 ```bash
@@ -108,3 +114,15 @@ When the project is ready to move from prototype to real HealthKit:
 5. enable `HealthKit` capability in Xcode
 6. replace the mock writer with a real HealthKit writer
 7. verify authorization, writing, and sideload flow on a real iPhone
+
+## CI
+
+This repo includes `.github/workflows/flutter-ci.yml`.
+
+The workflow:
+
+1. reads the pinned Flutter version from `.fvmrc`
+2. installs that version in GitHub Actions
+3. runs `flutter pub get`
+4. runs `flutter analyze`
+5. runs `flutter test`

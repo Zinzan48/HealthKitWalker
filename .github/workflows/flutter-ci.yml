@@ -1,0 +1,42 @@
+name: flutter-ci
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read pinned Flutter version
+        id: flutter-version
+        shell: bash
+        run: |
+          echo "version=$(python - <<'PY'
+          import json
+          with open('.fvmrc', 'r', encoding='utf-8') as fh:
+              print(json.load(fh)['flutter'])
+          PY
+          )" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.flutter-version.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
