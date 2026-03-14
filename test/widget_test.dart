@@ -5,13 +5,20 @@ import 'package:healthkitwalker/app/app.dart';
 import 'package:healthkitwalker/features/step_simulator/application/step_session_controller.dart';
 import 'package:healthkitwalker/features/step_simulator/data/mock_step_writer.dart';
 import 'package:healthkitwalker/features/step_simulator/data/session_persistence.dart';
+import 'package:healthkitwalker/features/step_simulator/data/step_writer.dart';
+import 'package:healthkitwalker/features/step_simulator/domain/writer_mode.dart';
 
 void main() {
-  testWidgets('renders the mock banner and app title', (tester) async {
+  testWidgets('renders the writer toggle and default mock banner', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final preferences = await SharedPreferences.getInstance();
     final controller = StepSessionController(
-      writer: const MockStepWriter(),
+      writers: <WriterMode, StepWriter>{
+        WriterMode.mock: const MockStepWriter(),
+        WriterMode.healthKit: const MockStepWriter(),
+      },
       persistence: SessionPersistence(preferences),
     );
 
@@ -21,6 +28,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('HealthKitWalker'), findsOneWidget);
-    expect(find.textContaining('mock / prototype 模式'), findsOneWidget);
+    expect(find.text('Mock'), findsWidgets);
+    expect(find.text('HealthKit'), findsOneWidget);
+    expect(find.textContaining('目前為 Mock mode'), findsOneWidget);
   });
 }

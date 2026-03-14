@@ -41,19 +41,17 @@ class SessionSummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (draftConfig == null) ...<Widget>[
-              Text(
-                '請先輸入有效的分鐘數與步數設定。',
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text('請先輸入有效的分鐘數與步數設定。', style: theme.textTheme.bodyMedium),
             ] else ...<Widget>[
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: <Widget>[
                   _SummaryItem(
-                    label: '模式',
-                    value: draftConfig.mode.label,
+                    label: 'Writer',
+                    value: draftConfig.writerMode.label,
                   ),
+                  _SummaryItem(label: '模式', value: draftConfig.mode.label),
                   _SummaryItem(
                     label: '每回合平均步數',
                     value: '${draftConfig.averageStepsPerInterval} 步',
@@ -74,14 +72,8 @@ class SessionSummaryCard extends StatelessWidget {
                         ? '持續直到手動停止'
                         : '${draftConfig.estimatedTickCount} 回合',
                   ),
-                  _SummaryItem(
-                    label: '已完成回合',
-                    value: '$completedTicks',
-                  ),
-                  _SummaryItem(
-                    label: '累計 mock 步數',
-                    value: '$totalWrittenSteps 步',
-                  ),
+                  _SummaryItem(label: '已完成回合', value: '$completedTicks'),
+                  _SummaryItem(label: '累計已寫入步數', value: '$totalWrittenSteps 步'),
                   _SummaryItem(
                     label: '下一次 tick',
                     value: timeUntilNextTick == null
@@ -113,10 +105,7 @@ class SessionSummaryCard extends StatelessWidget {
 }
 
 class _SummaryItem extends StatelessWidget {
-  const _SummaryItem({
-    required this.label,
-    required this.value,
-  });
+  const _SummaryItem({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -142,10 +131,7 @@ class _SummaryItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.titleSmall,
-          ),
+          Text(value, style: theme.textTheme.titleSmall),
         ],
       ),
     );

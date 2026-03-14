@@ -1,16 +1,17 @@
 # HealthKitWalker
 
-`HealthKitWalker` is an **iOS-first Flutter prototype** for simulating timed step-writing sessions.
+`HealthKitWalker` is an **iOS-first Flutter prototype** for timed step-writing sessions with a switchable writer mode.
 
-Right now this repository is intentionally built as a **mock / prototype first** project:
+Right now this repository is intentionally built as a **mock-first but HealthKit-ready** project:
 
 - build the UI
 - validate the session flow
 - validate the random step allocation
 - validate pause / resume behavior
+- keep both `Mock` and `HealthKit` writers behind a simple config switch
 - keep the cost near zero
 
-Actual on-device HealthKit writing is deferred until Apple Developer Program access is available.
+Actual on-device HealthKit writing is implemented in code, but only works when Apple Developer Program signing, HealthKit entitlement, and iPhone authorization are available.
 
 ## Why this repo is mock-first
 
@@ -28,8 +29,9 @@ Because a free Apple account does **not** unlock the `HealthKit` capability for 
 
 ## Current scope
 
-The current app is expected to support:
+The current app already supports:
 
+- switchable `Mock` / `HealthKit` writer mode
 - interval minutes
 - average steps per interval
 - fixed-duration mode
@@ -42,10 +44,30 @@ The current app is expected to support:
 
 ## Not included yet
 
-- real Apple Health writes
 - signed IPA distribution
-- HealthKit entitlement setup
 - any attempt to bypass Apple signing requirements
+
+## Writer modes
+
+### Mock
+
+- safe default
+- simulates every tick and log entry
+- does **not** change Apple Health data
+- works for local development, widget tests, and no-cost flow validation
+
+### HealthKit
+
+- uses the Flutter `health` package
+- asks for Apple Health authorization when a session starts
+- writes step samples with `RecordingMethod.manual`
+- requires:
+  - iPhone / iOS
+  - Apple Developer Program signing
+  - `HealthKit` entitlement
+  - `Info.plist` usage descriptions
+
+The app persists your last selected writer mode, so you can switch and come back later without editing code.
 
 ## Cost summary
 
@@ -101,7 +123,7 @@ This repo is currently local-first:
 4. UI / controls
 5. CI / docs reinforcement
 
-Each clear phase should be committed locally before moving on.
+Each clear phase should be committed locally before moving on. This repository already has local phase commits for scaffold, docs, mock flow, and CI/editor setup.
 
 ## Upgrade path to real HealthKit
 
@@ -109,11 +131,10 @@ When the project is ready to move from prototype to real HealthKit:
 
 1. join Apple Developer Program
 2. prepare macOS + Xcode access
-3. add the `health` Flutter package
-4. configure iOS `Info.plist`
-5. enable `HealthKit` capability in Xcode
-6. replace the mock writer with a real HealthKit writer
-7. verify authorization, writing, and sideload flow on a real iPhone
+3. open `ios\Runner.xcworkspace` in Xcode and confirm the `HealthKit` capability is enabled
+4. confirm `Runner.entitlements` and `Info.plist` match your signing target
+5. run the existing `HealthKit` writer on a real iPhone
+6. verify authorization, writing, and sideload flow
 
 ## CI
 

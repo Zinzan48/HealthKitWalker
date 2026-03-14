@@ -30,8 +30,8 @@ class SessionSnapshot {
       nextTickAt: json['nextTickAt'] == null
           ? null
           : DateTime.tryParse(json['nextTickAt'] as String),
-      savedAt: DateTime.tryParse(json['savedAt'] as String? ?? '') ??
-          DateTime.now(),
+      savedAt:
+          DateTime.tryParse(json['savedAt'] as String? ?? '') ?? DateTime.now(),
     );
   }
 

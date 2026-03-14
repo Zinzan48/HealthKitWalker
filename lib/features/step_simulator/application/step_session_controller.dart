@@ -10,17 +10,18 @@ import '../domain/session_snapshot.dart';
 import '../domain/session_status.dart';
 import '../domain/session_tick.dart';
 import '../domain/step_planner.dart';
+import '../domain/writer_mode.dart';
 
 class StepSessionController extends ChangeNotifier {
   StepSessionController({
-    required StepWriter writer,
+    required Map<WriterMode, StepWriter> writers,
     required SessionPersistence persistence,
     Random? random,
-  })  : _writer = writer,
-        _persistence = persistence,
-        _random = random ?? Random();
+  }) : _writers = writers,
+       _persistence = persistence,
+       _random = random ?? Random();
 
-  final StepWriter _writer;
+  final Map<WriterMode, StepWriter> _writers;
   final SessionPersistence _persistence;
   final Random _random;
 
@@ -32,7 +33,7 @@ class StepSessionController extends ChangeNotifier {
   int _completedTicks = 0;
   int _totalWrittenSteps = 0;
   DateTime? _nextTickAt;
-  String _message = '目前為 mock 模式，不會真的寫入 Apple Health。';
+  String _message = '目前預設為 Mock writer，可隨時切換成 HealthKit writer。';
 
   SessionConfig get currentConfig => _currentConfig;
   SessionStatus get status => _status;
@@ -41,11 +42,13 @@ class StepSessionController extends ChangeNotifier {
   int get totalWrittenSteps => _totalWrittenSteps;
   String get message => _message;
 
-  int? get estimatedTickCount =>
-      _currentConfig.mode.isFixedDuration ? _currentConfig.estimatedTickCount : null;
+  int? get estimatedTickCount => _currentConfig.mode.isFixedDuration
+      ? _currentConfig.estimatedTickCount
+      : null;
 
-  int? get estimatedTotalSteps =>
-      _currentConfig.mode.isFixedDuration ? _currentConfig.estimatedTotalSteps : null;
+  int? get estimatedTotalSteps => _currentConfig.mode.isFixedDuration
+      ? _currentConfig.estimatedTotalSteps
+      : null;
 
   Duration? get timeUntilNextTick {
     if (_status != SessionStatus.running || _nextTickAt == null) {
@@ -78,17 +81,27 @@ class StepSessionController extends ChangeNotifier {
   Future<void> start(SessionConfig config) async {
     _cancelTicker();
 
+    await _persistence.saveConfig(config);
+
+    final writer = _writerFor(config.writerMode);
+    final preparedMessage = await _prepareWriter(
+      writer: writer,
+      config: config,
+    );
+    if (preparedMessage == null) {
+      return;
+    }
+
     _currentConfig = config;
     _status = SessionStatus.running;
-    _message = config.mode.isFixedDuration
-        ? 'Session 已開始。第一個 tick 會在 ${config.intervalMinutes} 分鐘後觸發。'
-        : '無限循環 session 已開始。第一個 tick 會在 ${config.intervalMinutes} 分鐘後觸發。';
     _ticks.clear();
     _completedTicks = 0;
     _totalWrittenSteps = 0;
     _nextTickAt = DateTime.now().add(config.intervalDuration);
+    _message = config.mode.isFixedDuration
+        ? '$preparedMessage 第一個 tick 會在 ${config.intervalMinutes} 分鐘後觸發。'
+        : '$preparedMessage 無限循環 session 已開始，第一個 tick 會在 ${config.intervalMinutes} 分鐘後觸發。';
 
-    await _persistence.saveConfig(config);
     await _persistSnapshot();
     _startTicker();
     notifyListeners();
@@ -113,7 +126,8 @@ class StepSessionController extends ChangeNotifier {
     }
 
     _status = SessionStatus.running;
-    _message = 'Session 已恢復，下一個 tick 會在 ${_currentConfig.intervalMinutes} 分鐘後觸發。';
+    _message =
+        'Session 已恢復，下一個 tick 會在 ${_currentConfig.intervalMinutes} 分鐘後觸發。';
     _nextTickAt = DateTime.now().add(_currentConfig.intervalDuration);
     await _persistSnapshot();
     _startTicker();
@@ -136,9 +150,7 @@ class StepSessionController extends ChangeNotifier {
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
         if (_status == SessionStatus.running) {
-          await pause(
-            reason: 'App 離開前景，已自動暫停。這個 prototype 不會在背景持續排程。',
-          );
+          await pause(reason: 'App 離開前景，已自動暫停。這個 prototype 不會在背景持續排程。');
         }
       case AppLifecycleState.resumed:
         break;
@@ -176,6 +188,10 @@ class StepSessionController extends ChangeNotifier {
     _tickInProgress = true;
     try {
       await _runTick(now);
+    } on StepWriterException catch (error) {
+      await pause(reason: error.message);
+    } catch (error) {
+      await pause(reason: 'writer 執行失敗：$error');
     } finally {
       _tickInProgress = false;
     }
@@ -190,7 +206,8 @@ class StepSessionController extends ChangeNotifier {
       random: _random,
     );
 
-    final result = await _writer.writeSteps(
+    final writer = _writerFor(_currentConfig.writerMode);
+    final result = await writer.writeSteps(
       steps: steps,
       startedAt: startedAt,
       endedAt: endedAt,
@@ -220,7 +237,7 @@ class StepSessionController extends ChangeNotifier {
       _status = SessionStatus.completed;
       _nextTickAt = null;
       _message =
-          'Fixed session 已完成。預估 ${_currentConfig.estimatedTotalSteps} 步，實際 mock 累計 $_totalWrittenSteps 步。';
+          'Fixed session 已完成。模式：${_currentConfig.writerMode.label}，預估 ${_currentConfig.estimatedTotalSteps} 步，實際累計 $_totalWrittenSteps 步。';
       await _persistSnapshot();
       notifyListeners();
       return;
@@ -249,5 +266,31 @@ class StepSessionController extends ChangeNotifier {
   void _cancelTicker() {
     _ticker?.cancel();
     _ticker = null;
+  }
+
+  StepWriter _writerFor(WriterMode writerMode) {
+    final writer = _writers[writerMode];
+    if (writer == null) {
+      throw StepWriterException('找不到 ${writerMode.label} writer。');
+    }
+
+    return writer;
+  }
+
+  Future<String?> _prepareWriter({
+    required StepWriter writer,
+    required SessionConfig config,
+  }) async {
+    try {
+      return await writer.prepareForSession();
+    } on StepWriterException catch (error) {
+      _currentConfig = config;
+      _status = SessionStatus.idle;
+      _nextTickAt = null;
+      _message = error.message;
+      await _persistence.clearSnapshot();
+      notifyListeners();
+      return null;
+    }
   }
 }

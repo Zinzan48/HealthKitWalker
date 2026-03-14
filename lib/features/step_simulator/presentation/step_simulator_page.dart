@@ -4,6 +4,7 @@ import '../application/step_session_controller.dart';
 import '../domain/session_config.dart';
 import '../domain/session_mode.dart';
 import '../domain/session_status.dart';
+import '../domain/writer_mode.dart';
 import 'widgets/session_summary_card.dart';
 
 class StepSimulatorPage extends StatefulWidget {
@@ -22,6 +23,7 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
   late final TextEditingController _averageStepsController;
   late final TextEditingController _totalMinutesController;
   late SessionMode _selectedMode;
+  late WriterMode _selectedWriterMode;
 
   @override
   void initState() {
@@ -30,12 +32,16 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
 
     final config = widget.controller.currentConfig;
     _selectedMode = config.mode;
-    _intervalController =
-        TextEditingController(text: config.intervalMinutes.toString());
-    _averageStepsController =
-        TextEditingController(text: config.averageStepsPerInterval.toString());
-    _totalMinutesController =
-        TextEditingController(text: (config.totalMinutes ?? 30).toString());
+    _selectedWriterMode = config.writerMode;
+    _intervalController = TextEditingController(
+      text: config.intervalMinutes.toString(),
+    );
+    _averageStepsController = TextEditingController(
+      text: config.averageStepsPerInterval.toString(),
+    );
+    _totalMinutesController = TextEditingController(
+      text: (config.totalMinutes ?? 30).toString(),
+    );
   }
 
   @override
@@ -61,9 +67,7 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
         final controller = widget.controller;
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('HealthKitWalker'),
-          ),
+          appBar: AppBar(title: const Text('HealthKitWalker')),
           body: SafeArea(
             child: Form(
               key: _formKey,
@@ -71,7 +75,7 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: <Widget>[
-                  _buildMockBanner(context),
+                  _buildWriterBanner(context, draftConfig),
                   const SizedBox(height: 16),
                   SessionSummaryCard(
                     config: draftConfig,
@@ -96,11 +100,23 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
     );
   }
 
-  Widget _buildMockBanner(BuildContext context) {
+  Widget _buildWriterBanner(BuildContext context, SessionConfig? draftConfig) {
     final theme = Theme.of(context);
+    final writerMode =
+        draftConfig?.writerMode ?? widget.controller.currentConfig.writerMode;
+    final isMock = writerMode == WriterMode.mock;
+    final bannerColor = isMock
+        ? theme.colorScheme.tertiaryContainer
+        : theme.colorScheme.secondaryContainer;
+    final foregroundColor = isMock
+        ? theme.colorScheme.onTertiaryContainer
+        : theme.colorScheme.onSecondaryContainer;
+    final description = isMock
+        ? '目前為 Mock mode。會完整模擬 session 流程，但不會真的寫入 Apple Health。'
+        : '目前選擇 HealthKit mode。開始時會要求 Apple Health 權限，且只在 iPhone + entitlement 條件下可真正寫入。';
 
     return Material(
-      color: theme.colorScheme.tertiaryContainer,
+      color: bannerColor,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -108,15 +124,15 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Icon(
-              Icons.info_outline,
-              color: theme.colorScheme.onTertiaryContainer,
+              isMock ? Icons.science_outlined : Icons.favorite_outline,
+              color: foregroundColor,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                '目前為 mock / prototype 模式。這個版本會完整模擬 session 流程，但不會真的寫入 Apple Health。',
+                description,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onTertiaryContainer,
+                  color: foregroundColor,
                 ),
               ),
             ),
@@ -137,6 +153,34 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
           children: <Widget>[
             Text('Session 設定', style: theme.textTheme.titleMedium),
             const SizedBox(height: 16),
+            Text('Writer 模式', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            SegmentedButton<WriterMode>(
+              segments: WriterMode.values
+                  .map(
+                    (mode) => ButtonSegment<WriterMode>(
+                      value: mode,
+                      label: Text(mode.label),
+                    ),
+                  )
+                  .toList(),
+              selected: <WriterMode>{_selectedWriterMode},
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _selectedWriterMode = selection.first;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _selectedWriterMode.description,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Session 模式', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
             SegmentedButton<SessionMode>(
               segments: SessionMode.values
                   .map(
@@ -195,7 +239,7 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
             ],
             const SizedBox(height: 12),
             Text(
-              '目前預設抖動約 ±18%，固定總時長模式會盡量讓最終總步數貼近目標。',
+              '目前預設抖動約 ±18%。切換 writer mode 後，新的設定會在下一次開始 session 時生效。',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -208,10 +252,12 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
 
   Widget _buildActionCard(BuildContext context, SessionConfig? draftConfig) {
     final controller = widget.controller;
-    final canStart = draftConfig != null && controller.status != SessionStatus.running;
+    final canStart =
+        draftConfig != null && controller.status != SessionStatus.running;
     final canPause = controller.status == SessionStatus.running;
     final canResume = controller.status == SessionStatus.paused;
-    final canStop = controller.status.isActive ||
+    final canStop =
+        controller.status.isActive ||
         controller.status == SessionStatus.completed ||
         controller.status == SessionStatus.stopped;
 
@@ -279,7 +325,7 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
             const SizedBox(height: 12),
             if (ticks.isEmpty)
               Text(
-                '尚未產生任何 tick。啟動 session 後，系統會依設定的分鐘數排程下一次 mock 寫入。',
+                '尚未產生任何 tick。啟動 session 後，系統會依設定的分鐘數排程下一次寫入。',
                 style: theme.textTheme.bodyMedium,
               )
             else
@@ -325,6 +371,7 @@ class _StepSimulatorPageState extends State<StepSimulatorPage>
       intervalMinutes: interval,
       averageStepsPerInterval: averageSteps,
       mode: _selectedMode,
+      writerMode: _selectedWriterMode,
       totalMinutes: totalMinutes,
     );
   }

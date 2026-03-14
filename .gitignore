@@ -34,6 +34,7 @@ migrate_working_dir/
 /coverage/
 
 # FVM
+.fvm/flutter_sdk
 .fvm/flutter_sdk/
 .fvm/versions/
 .fvm/release

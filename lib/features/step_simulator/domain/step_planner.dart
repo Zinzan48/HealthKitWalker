@@ -21,9 +21,10 @@ class StepPlanner {
     );
 
     if (config.mode.isInfiniteLoop) {
-      final jittered = (config.averageStepsPerInterval *
-              (1 + _nextJitter(random, config.jitterRatio)))
-          .round();
+      final jittered =
+          (config.averageStepsPerInterval *
+                  (1 + _nextJitter(random, config.jitterRatio)))
+              .round();
       return jittered.clamp(minPerTick, maxPerTick);
     }
 
@@ -35,11 +36,14 @@ class StepPlanner {
     }
 
     final averageRemaining = remainingTarget / remainingTicks;
-    final jittered = (averageRemaining *
-            (1 + _nextJitter(random, config.jitterRatio)))
-        .round();
+    final jittered =
+        (averageRemaining * (1 + _nextJitter(random, config.jitterRatio)))
+            .round();
 
-    final minAllowed = max(1, remainingTarget - ((remainingTicks - 1) * maxPerTick));
+    final minAllowed = max(
+      1,
+      remainingTarget - ((remainingTicks - 1) * maxPerTick),
+    );
     final maxAllowed = max(
       minAllowed,
       remainingTarget - ((remainingTicks - 1) * minPerTick),

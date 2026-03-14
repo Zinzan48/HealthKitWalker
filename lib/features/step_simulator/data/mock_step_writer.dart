@@ -1,7 +1,16 @@
 import 'step_writer.dart';
+import '../domain/writer_mode.dart';
 
 class MockStepWriter implements StepWriter {
   const MockStepWriter();
+
+  @override
+  WriterMode get writerMode => WriterMode.mock;
+
+  @override
+  Future<String> prepareForSession() async {
+    return 'Mock writer 已就緒。這次 session 不會修改 Apple Health。';
+  }
 
   @override
   Future<StepWriteResult> writeSteps({
@@ -16,8 +25,7 @@ class MockStepWriter implements StepWriter {
 
     return StepWriteResult(
       stepsWritten: steps,
-      message:
-          'Mock write only: $steps steps for a $minutesLabel-minute segment. No HealthKit data was changed.',
+      message: 'Mock 寫入完成：這個 $minutesLabel 分鐘區段模擬了 $steps 步，沒有修改 Apple Health。',
     );
   }
 }

@@ -1,10 +1,4 @@
-enum SessionStatus {
-  idle,
-  running,
-  paused,
-  stopped,
-  completed,
-}
+enum SessionStatus { idle, running, paused, stopped, completed }
 
 extension SessionStatusX on SessionStatus {
   String get label => switch (this) {
@@ -15,5 +9,6 @@ extension SessionStatusX on SessionStatus {
     SessionStatus.completed => '已完成',
   };
 
-  bool get isActive => this == SessionStatus.running || this == SessionStatus.paused;
+  bool get isActive =>
+      this == SessionStatus.running || this == SessionStatus.paused;
 }
