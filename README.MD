@@ -90,6 +90,7 @@ The app persists your last selected writer mode, so you can switch and come back
 - Windows local development
 - FVM-managed Flutter SDK
 - pinned Flutter version: `3.35.7`
+- iOS minimum deployment target: `14.0` (required by the `health` plugin)
 
 ## Commands
 

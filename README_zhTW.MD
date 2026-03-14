@@ -90,6 +90,7 @@ App 會儲存你上次選的 writer mode，所以你之後可以直接切換回�
 - Windows 本機開發
 - 使用 FVM 管理 Flutter SDK
 - 鎖定的 Flutter 版本：`3.35.7`
+- iOS 最低 deployment target：`14.0`（`health` 套件目前需要）
 
 ## 指令
 
