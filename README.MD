@@ -1,5 +1,7 @@
 # HealthKitWalker
 
+Language: **English** | [繁體中文](README_zhTW.MD)
+
 `HealthKitWalker` is an **iOS-first Flutter prototype** for timed step-writing sessions with a switchable writer mode.
 
 Right now this repository is intentionally built as a **mock-first but HealthKit-ready** project:
@@ -88,6 +90,7 @@ The app persists your last selected writer mode, so you can switch and come back
 - Windows local development
 - FVM-managed Flutter SDK
 - pinned Flutter version: `3.35.7`
+- iOS minimum deployment target: `14.0` (required by the `health` plugin)
 
 ## Commands
 

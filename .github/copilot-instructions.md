@@ -3,6 +3,7 @@
 ## Build, test, and lint commands
 
 - Use FVM locally. The pinned Flutter version lives in `.fvmrc`.
+- The iOS project targets **iOS 14.0+** because the `health` plugin podspec requires that minimum deployment target.
 - Install dependencies: `fvm flutter pub get`
 - Analyze: `fvm flutter analyze`
 - Run all tests: `fvm flutter test`
@@ -35,6 +36,7 @@ This is an iOS-first Flutter app centered on a single feature: a timed step-writ
   - `SessionPersistence` stores the last config and the latest session snapshot in `shared_preferences`.
 - `lib\features\step_simulator\presentation\step_simulator_page.dart` is the only screen. It builds the form, writer-mode toggle, session-mode toggle, action buttons, and tick log, and listens to `StepSessionController` directly with `ListenableBuilder`.
 - iOS HealthKit setup is partially checked into source:
+  - `ios\Podfile` pins the CocoaPods platform to iOS 14.0 and forces pods to use that deployment target in `post_install`.
   - `ios\Runner\Info.plist` contains HealthKit usage descriptions.
   - `ios\Runner\Runner.entitlements` contains the HealthKit entitlement key.
   - `ios\Runner.xcodeproj\project.pbxproj` points `CODE_SIGN_ENTITLEMENTS` at that entitlements file.
