@@ -143,7 +143,7 @@ This repo includes `.github/workflows/flutter-ci.yml`.
 The workflow:
 
 1. reads the pinned Flutter version from `.fvmrc`
-2. installs that version in GitHub Actions
-3. runs `flutter pub get`
-4. runs `flutter analyze`
-5. runs `flutter test`
+2. runs `flutter pub get` on `ubuntu-latest`
+3. runs `flutter analyze` on `ubuntu-latest`
+4. runs `flutter test` on `ubuntu-latest`
+5. runs `flutter build ios --no-codesign` on `macos-latest`

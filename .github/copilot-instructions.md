@@ -13,7 +13,7 @@
   - `fvm flutter build ipa --export-method development`
   - `fvm flutter build ipa --export-method ad-hoc`
 
-CI in `.github\workflows\flutter-ci.yml` reads the Flutter version from `.fvmrc` and runs `flutter pub get`, `flutter analyze`, and `flutter test`. Keep local commands aligned with that workflow.
+CI in `.github\workflows\flutter-ci.yml` reads the Flutter version from `.fvmrc`, keeps `flutter analyze` and `flutter test` on `ubuntu-latest`, and adds a `macos-latest` job for `flutter build ios --no-codesign`. Keep local commands aligned with that workflow.
 
 ## High-level architecture
 
